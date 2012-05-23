@@ -87,7 +87,7 @@ def read_sprites(input_path, output_path):
     for dirname, dirnames, filenames in os.walk(input_path):
         for filename in filenames:
             extension = os.path.splitext(filename)[1]
-            if extension.lower() != '.png' :
+            if extension.lower() not in ('.png', '.jpg', '.jpeg', '.gif', '.bmp') :
                 continue
 
             file_path = os.path.join(dirname, filename)
@@ -157,11 +157,11 @@ if __name__ == "__main__":
         help="Prefix of JS namespace in the metadata file, required")
 
     parser.add_option("--width",
-        dest="width", default=1024,
+        dest="width", default=1024, type="int",
         help="Sprite sheet image width")
 
     parser.add_option("--height",
-        dest="height", default=1024,
+        dest="height", default=1024, type="int",
         help="Sprite sheet image height")
 
     (options, args) = parser.parse_args()
