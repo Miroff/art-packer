@@ -1,6 +1,10 @@
 
-from artpacker import create_sprite_sheet
+from artpacker import ArtPacker
 from optparse import OptionParser
+
+from metadata.json import JSONMetadataSaver
+from metadata.dummy import DummyMetadataSaver
+from packer.simple import SimplePacker
 
 def main():
     parser = OptionParser(usage="%prog [options]")
@@ -14,27 +18,57 @@ def main():
         default=".",
         help="Path to output folder. Default '.'")
 
-    parser.add_option("--output-js",
-        dest="output_js",
-        help="Name of output JS metadata file, required")
+    parser.add_option("--metadata-format",
+        dest="metadata_format",
+        default="json",
+        help="Metadata file format. Should be one of 'json', 'dummy'. Default 'json'")
 
-    parser.add_option("--prefix-js",
-        dest="prefix_js",
-        help="Prefix of JS namespace in the metadata file, required")
+    parser.add_option("--metadata-filename",
+        dest="metadata_filename",
+        help="Metadata file name")
+
+    parser.add_option("--sprite-sheet-prefix",
+        dest="prefix",
+        default='',
+        help="Prefix of sprite sheet file names.")
 
     parser.add_option("--width",
         dest="width", default=1024, type="int",
-        help="Sprite sheet image width")
+        help="Sprite sheet image width. Default 1024")
 
     parser.add_option("--height",
         dest="height", default=1024, type="int",
-        help="Sprite sheet image height")
+        help="Sprite sheet image height. Default 1024")
+
+    parser.add_option("-q", "--quiet",
+        action='store_false',
+        dest="verbose", default=True,
+        help="Don't print status messages to stdout")
 
     (options, args) = parser.parse_args()
 
-    if not options.input or not options.output or not options.output_js or not options.prefix_js:
-        print "--input-path, --prefix-js, and --output-js parameters are required"
+    if not options.input:
+        print "--input-path parameter is required"
         raise SystemExit
 
-    print "Compressing images to sprite sheets"
-    create_sprite_sheet(options.input, options.output, (options.width, options.height), options.output_js, options.prefix_js)
+    packer = SimplePacker(options.width, options.height, options.output)
+
+    ArtPacker(
+        input_path=options.input, 
+        output_size=(),
+        metadata_saver=get_metadata_saver(options),
+        resource_packer=packer,
+        resource_prefix=options.prefix,
+        verbose=options.verbose).generate()
+
+def get_metadata_saver(options):
+    if options.metadata_format == 'json':
+        if options.metadata_filename:
+            metadata_filename = options.metadata_filename
+        elif options.prefix:
+            metadata_filename = options.prefix + '.json'
+        else:
+            metadata_filename = 'metadata.json'
+        return JSONMetadataSaver(metadata_filename)
+    else:
+        return DummyMetadataSaver()
