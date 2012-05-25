@@ -1,14 +1,18 @@
+import ImageChops
 import os
 import Image
+from math import sqrt
 
 class ArtPacker():
-    def __init__(self, input_path, output_size, metadata_saver, resource_packer, resource_prefix, verbose=False):
+    def __init__(self, input_path, output_size, metadata_saver, resource_packer, resource_prefix=None, padding=0, duplicates_threshold=None, verbose=False):
         self.input_path = input_path
         self.output_size = output_size
         self.metadata_saver = metadata_saver
         self.resource_packer = resource_packer
         self.resource_prefix = resource_prefix
         self.verbose = verbose
+        self.padding = padding
+        self.duplicates_threshold = duplicates_threshold
 
         if self.resource_prefix and not self.resource_prefix.endswith("-"):
             self.resource_prefix += "-"
@@ -68,9 +72,22 @@ class ArtPacker():
                 file_path = os.path.join(dirname, filename)
                 image = Image.open(file_path)
 
-                #TODO: Crop to transparent
-                #TODO: Detect duplicates
-                #TODO: Add padding
+                #Crop by alpha channel if any
+                if 'A' in image.getbands():
+                    bbox = image.split()[image.getbands().index('A')].getbbox()
+                else:
+                    bbox = image.getbbox()
+
+                #check Image is not empty
+                if not bbox:
+                    continue
+
+                #Crop image to non-transparent area
+                image = image.crop(bbox)
+
+                #Add padding to the image
+                image = self.add_padding(image)
+
                 images.append({
                     'image': image,
                     'path': os.path.relpath(file_path, self.input_path),
@@ -80,7 +97,46 @@ class ArtPacker():
                     'height': image.size[1],
                     'filesize': os.path.getsize(file_path)
                 })
-        return images
-    
-#    def pack_sprites(self, source_images, output_size, output_filename, sprite_sheet):
 
+        return self.filter_duplicates(images)
+
+    def add_padding(self, image):
+        if self.padding <= 0:
+            return image
+
+        #We use this hand-written code because ImageOps.expand doesn't add transparent background
+        width = self.padding + image.size[0] + self.padding
+        height = self.padding + image.size[1] + self.padding
+        result = Image.new("RGBA", (width, height), (0xff, 0xff, 0xff, 1))
+        result.paste(image, (self.padding, self.padding))
+        return result
+
+    def filter_duplicates(self, images):
+        if self.duplicates_threshold is None:
+            return images
+
+        result = []
+        for image in images:
+            is_duplicate = False
+            for candidate in result:
+                if image_match(candidate['image'], image['image'], self.duplicates_threshold):
+                    is_duplicate = True
+                    break
+            if not is_duplicate:
+                result.append(image)
+        return result
+
+def image_match(image_a, image_b, threshold):
+    if image_a.size != image_b.size or image_a.getbands() != image_b.getbands():
+        return False
+
+    rms = []
+    for band_a, band_b in zip(image_a.split(), image_b.split()):
+        hist = ImageChops.difference(band_a, band_b).histogram()
+        squares = (value * (i ** 2.0) for i, value in enumerate(hist))
+        area = image_a.size[0] * image_a.size[1]
+        rms.append(sqrt(sum(squares) / area))
+
+    rms = sqrt(reduce(lambda score, rms: rms ** 2 + score, rms, 0))
+
+    return rms < threshold

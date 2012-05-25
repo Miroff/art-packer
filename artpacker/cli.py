@@ -40,6 +40,14 @@ def main():
         dest="height", default=1024, type="int",
         help="Sprite sheet image height. Default 1024")
 
+    parser.add_option("--padding",
+        dest="padding", default=0, type="int",
+        help="Padding between images in the sprite sheet")
+
+    parser.add_option("--duplicates-threshold",
+        dest="duplicates_threshold", default=None, type="float",
+        help="Threshold for automatic duplicates filtering. Reasonable values are from 0 to 25.")
+
     parser.add_option("-q", "--quiet",
         action='store_false',
         dest="verbose", default=True,
@@ -59,6 +67,8 @@ def main():
         metadata_saver=get_metadata_saver(options),
         resource_packer=packer,
         resource_prefix=options.prefix,
+        padding=options.padding,
+        duplicates_threshold=options.duplicates_threshold,
         verbose=options.verbose).generate()
 
 def get_metadata_saver(options):
