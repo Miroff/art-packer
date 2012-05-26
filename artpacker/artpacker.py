@@ -21,7 +21,7 @@ class ArtPacker():
         if self.verbose:
             print "Reading image resources"
 
-        images = self.read_sprites()
+        images, duplicates = self.read_sprites()
 
         if self.verbose:
             print "Packing %d images to sprite-sheets" % len(images)
@@ -50,6 +50,9 @@ class ArtPacker():
             if self.verbose:
                 overhead = 100.0 - (100.0 * used_area / sheet_area)
                 print "%s %d images was packed with pixel overhead of %.2f%%" % (filename, len(sprite_metadata), overhead)
+
+        for image in duplicates:
+            metadata[image['path']] = metadata[image['duplicate_of']]
 
         self.metadata_saver.save({'spriteshhets': sprite_sheets, 'sprites': metadata})
         if self.verbose:
@@ -113,9 +116,10 @@ class ArtPacker():
 
     def filter_duplicates(self, images):
         if self.duplicates_threshold is None:
-            return images
+            return images, []
 
         result = []
+        duplicates = []
         for image in images:
             is_duplicate = False
             for candidate in result:
@@ -124,7 +128,12 @@ class ArtPacker():
                     break
             if not is_duplicate:
                 result.append(image)
-        return result
+            else:
+                del image['image']
+                image['duplicate_of'] = candidate['path']
+                duplicates.append(image)
+
+        return result, duplicates
 
 def image_match(image_a, image_b, threshold):
     if image_a.size != image_b.size or image_a.getbands() != image_b.getbands():
@@ -139,4 +148,4 @@ def image_match(image_a, image_b, threshold):
 
     rms = sqrt(reduce(lambda score, rms: rms ** 2 + score, rms, 0))
 
-    return rms < threshold
+    return rms <= threshold
