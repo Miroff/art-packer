@@ -46,7 +46,7 @@ def main():
 
     parser.add_option("--duplicates-threshold",
         dest="duplicates_threshold", default=None, type="float",
-        help="Threshold for automatic duplicates filtering. Reasonable values are from 0 to 25.")
+        help="Threshold for automatic duplicates filtering. Reasonable values are from 0 to 25. 0 is exact match")
 
     parser.add_option("-q", "--quiet",
         action='store_false',
