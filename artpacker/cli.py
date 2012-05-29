@@ -6,6 +6,8 @@ from metadata.json import JSONMetadataSaver
 from metadata.dummy import DummyMetadataSaver
 from packer.simple import SimplePacker
 
+AVAILABLE_FORMATS = ('gif', 'png', 'jpg')
+
 def main():
     parser = OptionParser(usage="%prog [options]")
 
@@ -48,6 +50,15 @@ def main():
         dest="duplicates_threshold", default=None, type="float",
         help="Threshold for automatic duplicates filtering. Reasonable values are from 0 to 25. 0 is exact match")
 
+    parser.add_option("--input-regex",
+        dest="input_regex", default=None,
+        help="Regular expression for filtering input files")
+
+    names = ", ".join(map(lambda a: "'%s'" % a, AVAILABLE_FORMATS))
+    parser.add_option("--output-format",
+        dest="output_format", default='png',
+        help="Output files format. Should be one of %s" % names)
+
     parser.add_option("-q", "--quiet",
         action='store_false',
         dest="verbose", default=True,
@@ -59,16 +70,26 @@ def main():
         print "--input-path parameter is required"
         raise SystemExit
 
-    packer = SimplePacker(options.width, options.height, options.output)
+    if options.output_format not in AVAILABLE_FORMATS:
+        print "--output-format %s is not supported" % options.output_format
+        raise SystemExit
+
+
+    packer = SimplePacker(
+        max_width=options.width,
+        max_height=options.height,
+        output_path=options.output)
 
     ArtPacker(
-        input_path=options.input, 
+        input_path=options.input,
+        input_regex=options.input_regex,
         output_size=(),
         metadata_saver=get_metadata_saver(options),
         resource_packer=packer,
         resource_prefix=options.prefix,
         padding=options.padding,
         duplicates_threshold=options.duplicates_threshold,
+        output_format=options.output_format,
         verbose=options.verbose).generate()
 
 def get_metadata_saver(options):

@@ -1,10 +1,11 @@
 import ImageChops
 import os
 import Image
+import re
 from math import sqrt
 
 class ArtPacker():
-    def __init__(self, input_path, output_size, metadata_saver, resource_packer, resource_prefix=None, padding=0, duplicates_threshold=None, verbose=False):
+    def __init__(self, input_path, output_size, metadata_saver, resource_packer, resource_prefix=None, padding=0, duplicates_threshold=None, input_regex=None, output_format='png', verbose=False):
         self.input_path = input_path
         self.output_size = output_size
         self.metadata_saver = metadata_saver
@@ -12,6 +13,8 @@ class ArtPacker():
         self.resource_prefix = resource_prefix
         self.verbose = verbose
         self.padding = padding
+        self.input_regex = input_regex
+        self.output_format = output_format
         self.duplicates_threshold = duplicates_threshold
 
         if self.resource_prefix and not self.resource_prefix.endswith("-"):
@@ -22,6 +25,12 @@ class ArtPacker():
             print "Reading image resources"
 
         images, duplicates = self.read_sprites()
+
+        if not images:
+            if self.verbose:
+                print "No images was found"
+            raise SystemExit
+
 
         if self.verbose:
             print "Packing %d images to sprite-sheets" % len(images)
@@ -38,7 +47,7 @@ class ArtPacker():
         sprite_sheets = []
 
         while images:
-            filename = "%s%d.png" % (self.resource_prefix, last_sprite_sheet)
+            filename = "%s%d.%s" % (self.resource_prefix, last_sprite_sheet, self.output_format)
             sprite_metadata, images, used_area, sheet_area, sheet_filesize = self.resource_packer.pack(images, filename)
 
             total_used_area += used_area
@@ -68,12 +77,15 @@ class ArtPacker():
 
         for dirname, dirnames, filenames in os.walk(self.input_path):
             for filename in filenames:
-                extension = os.path.splitext(filename)[1]
-                if extension.lower() not in ('.png', '.jpg', '.jpeg', '.gif', '.bmp'):
+                if self.input_regex and not re.match(self.input_regex, filename):
                     continue
 
                 file_path = os.path.join(dirname, filename)
-                image = Image.open(file_path)
+
+                try:
+                    image = Image.open(file_path)
+                except Exception, e:
+                    continue
 
                 #Crop by alpha channel if any
                 if 'A' in image.getbands():
