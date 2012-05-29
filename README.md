@@ -27,6 +27,10 @@ This software works without installation, but if you want just run
 
 sudo python setup.py install
 
+or even 
+
+pip install artpacker
+
 Usage:
 ------
 
