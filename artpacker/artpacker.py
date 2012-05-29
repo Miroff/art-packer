@@ -4,21 +4,45 @@ import Image
 import re
 from math import sqrt
 
+class SpriteSheet():
+    def __init__(self):
+        self.sprites = []
+        self.used_area = 0
+        self.size = (0, 0)
+        self.filename = ''
+        self.filesize = 0
+
+    def get_metadata(self):
+        metadata = {}
+        for sprite in self.sprites:
+            metadata[sprite['path']] = {
+                'position': sprite['position'],
+                'sprite_sheet': self.filename,
+            }
+        return metadata
+
+    def add_sprite(self, sprite, position):
+        sprite['position'] = position
+        self.sprites.append(sprite)
+        self.used_area += sprite['area']
+
+    def __iter__(self):
+        for x in self.sprites:
+            yield (x['image'], x['position'])
+
+    def __len__(self):
+        return len(self.sprites)
+
 class ArtPacker():
-    def __init__(self, input_path, output_size, metadata_saver, resource_packer, resource_prefix=None, padding=0, duplicates_threshold=None, input_regex=None, output_format='png', verbose=False):
+    def __init__(self, input_path, metadata_saver, image_saver, resource_packer, padding=0, duplicates_threshold=None, input_regex=None, verbose=False):
         self.input_path = input_path
-        self.output_size = output_size
         self.metadata_saver = metadata_saver
+        self.image_saver = image_saver
         self.resource_packer = resource_packer
-        self.resource_prefix = resource_prefix
         self.verbose = verbose
         self.padding = padding
         self.input_regex = input_regex
-        self.output_format = output_format
         self.duplicates_threshold = duplicates_threshold
-
-        if self.resource_prefix and not self.resource_prefix.endswith("-"):
-            self.resource_prefix += "-"
 
     def generate(self):
         if self.verbose:
@@ -47,23 +71,24 @@ class ArtPacker():
         sprite_sheets = []
 
         while images:
-            filename = "%s%d.%s" % (self.resource_prefix, last_sprite_sheet, self.output_format)
-            sprite_metadata, images, used_area, sheet_area, sheet_filesize = self.resource_packer.pack(images, filename)
+            sprite_sheet, images = self.resource_packer.pack(images)
+            self.image_saver.save(sprite_sheet)
 
-            total_used_area += used_area
+            total_used_area += sprite_sheet.used_area
+            sheet_area = sprite_sheet.size[0] * sprite_sheet.size[1]
             total_sheet_area += sheet_area
-            total_filesize += sheet_filesize
+            total_filesize += sprite_sheet.filesize
             last_sprite_sheet += 1
-            sprite_sheets.append(filename)
-            metadata.update(sprite_metadata)
+            sprite_sheets.append(sprite_sheet.filename)
+            metadata.update(sprite_sheet.get_metadata())
             if self.verbose:
-                overhead = 100.0 - (100.0 * used_area / sheet_area)
-                print "%s %d images was packed with pixel overhead of %.2f%%" % (filename, len(sprite_metadata), overhead)
+                overhead = 100.0 - (100.0 * sprite_sheet.used_area / sheet_area)
+                print "%s %d images was packed with pixel overhead of %.2f%%" % (sprite_sheet.filename, len(sprite_sheet), overhead)
 
         for image in duplicates:
             metadata[image['path']] = metadata[image['duplicate_of']]
 
-        self.metadata_saver.save({'spriteshhets': sprite_sheets, 'sprites': metadata})
+        self.metadata_saver.save({'sheets': sprite_sheets, 'sprites': metadata})
         if self.verbose:
             total_overhead = 100.0 - (100.0 * total_used_area / total_sheet_area)
             print "Done!"

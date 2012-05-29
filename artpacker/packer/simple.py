@@ -1,6 +1,6 @@
 
-import Image
 import os
+from artpacker.artpacker import SpriteSheet
 
 class PackNode(object):
     """
@@ -42,40 +42,27 @@ class PackNode(object):
             return PackNode((self.area[0], self.area[1], self.area[0] + area.width, self.area[1] + area.height))
 
 class SimplePacker():
-    def __init__(self, max_width, max_height, output_path):
+    def __init__(self, max_width, max_height):
         self.max_width =  max_width
         self.max_height = max_height
-        self.output_path = output_path
 
-    def pack(self, images, output_filename):
+    def pack(self, images):
+        result = SpriteSheet()
         source_images = sorted(images, key=lambda item: item['area'], reverse=True)
-
         output_size = self.adjust_max_size(source_images)
 
-        output_image = Image.new('RGBA', output_size, (0xff, 0xff, 0xff, 1))
         tree = PackNode(output_size)
 
         missed_images = []
-        area = 0
-        actual_size = (0, 0, 0, 0)
-        metadata = {}
         for image in source_images:
             position = tree.insert(image['size'])
             if position is None:
                 missed_images.append(image)
             else:
-                output_image.paste(image['image'], position.area)
-                area += image['area']
-                actual_size = (0, 0, max(actual_size[2], position.area[2]), max(actual_size[3], position.area[3]))
-                metadata[image['path']] = {
-                    'coordinates': position.area,
-                    'sprite': output_filename,
-                    }
+                result.size = (max(result.size[0], position.area[2]), max(result.size[1], position.area[3]))
+                result.add_sprite(image, position.area)
 
-        sheet_filename = os.path.join(self.output_path, output_filename)
-        output_image.crop(actual_size).save(sheet_filename)
-
-        return metadata, missed_images, area, actual_size[2] * actual_size[3], os.path.getsize(sheet_filename)
+        return result, missed_images
 
     def adjust_max_size(self, images):
         #The largest image must fit the sprite sheet

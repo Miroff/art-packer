@@ -5,8 +5,10 @@ from optparse import OptionParser
 from metadata.json import JSONMetadataSaver
 from metadata.dummy import DummyMetadataSaver
 from packer.simple import SimplePacker
+from saver.png import PNGSaver
+from saver.jpeg import JPEGSaver
 
-AVAILABLE_FORMATS = ('gif', 'png', 'jpg')
+AVAILABLE_FORMATS = ('png', 'jpg')
 
 def main():
     parser = OptionParser(usage="%prog [options]")
@@ -59,6 +61,15 @@ def main():
         dest="output_format", default='png',
         help="Output files format. Should be one of %s" % names)
 
+    parser.add_option("--jpeg-quality",
+        dest="jpeg_quality", default='85', type="int",
+        help="Quality of JPEG file. Reasonable values 70-100")
+
+    parser.add_option("--jpeg-progressive",
+        action='store_true',
+        dest="jpeg_progressive", default='False',
+        help="Produce progressive JPEG file")
+
     parser.add_option("-q", "--quiet",
         action='store_false',
         dest="verbose", default=True,
@@ -74,22 +85,32 @@ def main():
         print "--output-format %s is not supported" % options.output_format
         raise SystemExit
 
+
     packer = SimplePacker(
         max_width=options.width,
-        max_height=options.height,
-        output_path=options.output)
+        max_height=options.height)
 
     ArtPacker(
         input_path=options.input,
-        input_regex=options.input_regex,
-        output_size=(),
         metadata_saver=get_metadata_saver(options),
+        image_saver=get_image_saver(options),
+        input_regex=options.input_regex,
         resource_packer=packer,
-        resource_prefix=options.prefix,
         padding=options.padding,
         duplicates_threshold=options.duplicates_threshold,
-        output_format=options.output_format,
         verbose=options.verbose).generate()
+
+def get_image_saver(options):
+    if options.output_format == 'jpg':
+        return JPEGSaver(
+            output_path=options.output,
+            filename_prefix=options.prefix,
+            progressive=options.jpeg_progressive,
+            quality=options.jpeg_quality)
+    elif options.output_format == 'png':
+        return PNGSaver(
+            output_path=options.output,
+            filename_prefix=options.prefix)
 
 def get_metadata_saver(options):
     if options.metadata_format == 'json':
