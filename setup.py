@@ -8,6 +8,6 @@ setup(name='artpacker',
       author='Maksim Gurtovenko',
       author_email='maksim@gurtovenko.name',
       url='https://github.com/Miroff/art-packer',
-      packages=['artpacker', 'artpacker.metadata', 'artpacker.packer'],
+      packages=['artpacker', 'artpacker.metadata', 'artpacker.packer', 'artpacker.saver'],
       scripts=['bin/art-packer'],
       )
