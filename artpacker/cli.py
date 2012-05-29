@@ -1,4 +1,5 @@
 
+import os
 from artpacker import ArtPacker
 from optparse import OptionParser
 
@@ -120,6 +121,6 @@ def get_metadata_saver(options):
             metadata_filename = options.prefix + '.json'
         else:
             metadata_filename = 'metadata.json'
-        return JSONMetadataSaver(metadata_filename)
+        return JSONMetadataSaver(os.path.join(options.output, metadata_filename))
     else:
         return DummyMetadataSaver()

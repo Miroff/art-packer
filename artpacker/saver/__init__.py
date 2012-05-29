@@ -24,9 +24,10 @@ class Saver():
 
         sprite_sheet.filename = self.next_filename()
 
-        self.save_file(result, sprite_sheet.filename)
+        filename = os.path.join(self.output_path, sprite_sheet.filename)
+        self.save_file(result, filename)
 
-        sprite_sheet.filesize = os.path.getsize(sprite_sheet.filename)
+        sprite_sheet.filesize = os.path.getsize(filename)
 
     def save_file(self, image, filename):
         raise "This method should be overridden in inherited classes"
