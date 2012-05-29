@@ -74,7 +74,6 @@ def main():
         print "--output-format %s is not supported" % options.output_format
         raise SystemExit
 
-
     packer = SimplePacker(
         max_width=options.width,
         max_height=options.height,

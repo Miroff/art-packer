@@ -66,11 +66,10 @@ class ArtPacker():
         self.metadata_saver.save({'spriteshhets': sprite_sheets, 'sprites': metadata})
         if self.verbose:
             total_overhead = 100.0 - (100.0 * total_used_area / total_sheet_area)
-            byte_overhead = ((total_filesize - source_filesize) / 1024.0 / 1024.0)
-            byte_overhead_percent = 100.0 - (100.0 * source_filesize / total_filesize)
             print "Done!"
             print "Total %d images was packed to %d sprite-sheets with pixel overhead of %.2f%%" % (len(metadata), len(sprite_sheets), total_overhead)
-            print "Bytes overhead is %.2f%% (%.2f Mb of %.2f Mb)" % (byte_overhead_percent, byte_overhead, total_filesize / 1024.0 / 1024.0)
+            print "Total size of unpacked resources is %.2f Mb" % (source_filesize / 1024.0 / 1024.0)
+            print "Total size of sprite sheets is %.2f Mb" % (total_filesize / 1024.0 / 1024.0)
 
     def read_sprites(self):
         images = []
