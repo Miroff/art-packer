@@ -157,16 +157,16 @@ class ArtPacker():
         result = []
         duplicates = []
         for image in images:
-            is_duplicate = False
+            duplicate_of = None
             for candidate in result:
                 if image_match(candidate['image'], image['image'], self.duplicates_threshold):
-                    is_duplicate = True
+                    duplicate_of = candidate
                     break
-            if not is_duplicate:
+            if not duplicate_of:
                 result.append(image)
             else:
                 del image['image']
-                image['duplicate_of'] = candidate['path']
+                image['duplicate_of'] = duplicate_of
                 duplicates.append(image)
 
         return result, duplicates
